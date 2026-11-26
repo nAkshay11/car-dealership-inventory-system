@@ -1,0 +1,88 @@
+@import "tailwindcss";
+
+@theme {
+  --font-display: "Oswald", sans-serif;
+  --font-body: "Inter", sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+
+  --color-ink: #14213d;
+  --color-ink-light: #1f2f52;
+  --color-steel: #3a4256;
+  --color-paper: #f5f3ee;
+  --color-paper-dim: #ece8de;
+  --color-amber: #f2a93b;
+  --color-amber-dark: #d68e1f;
+  --color-rust: #c1440e;
+  --color-moss: #3d7a4f;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  font-family: var(--font-body);
+  background-color: var(--color-paper);
+  color: var(--color-ink);
+}
+
+.font-display {
+  font-family: var(--font-display);
+}
+
+.font-mono {
+  font-family: var(--font-mono);
+}
+
+/* Subtle diagonal hazard-stripe texture used sparingly as a signature accent */
+.stripe-accent {
+  background-image: repeating-linear-gradient(
+    135deg,
+    var(--color-amber) 0px,
+    var(--color-amber) 10px,
+    var(--color-ink) 10px,
+    var(--color-ink) 20px
+  );
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes driveAcross {
+  0% {
+    left: -60px;
+  }
+  50% {
+    left: calc(50% - 28px);
+  }
+  100% {
+    left: 100%;
+  }
+}
+
+@keyframes roadDash {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+button {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}

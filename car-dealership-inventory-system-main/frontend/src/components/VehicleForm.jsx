@@ -1,0 +1,247 @@
+import { useState } from 'react';
+
+const API_BASE =
+  import.meta.env.VITE_API_BASE_URL?.replace('/api', '') ||
+  'http://localhost:5000';
+
+const empty = {
+  make: '',
+  model: '',
+  category: '',
+  price: '',
+  quantity: '',
+};
+
+export default function VehicleForm({ initial, onSubmit, onCancel }) {
+  const [form, setForm] = useState(
+    initial ? { ...empty, ...initial } : empty
+  );
+
+  const [imageFile, setImageFile] = useState(null);
+
+  const initialImageUrl = initial?.imageUrl || initial?.image;
+  const getPreviewUrl = (path) => {
+    if (!path) return null;
+    if (path.startsWith('http://') || path.startsWith('https://')) {
+      return path;
+    }
+    const cleanPath = path.startsWith('/') ? path : `/${path}`;
+    return `${API_BASE}${cleanPath}`;
+  };
+
+  const [preview, setPreview] = useState(getPreviewUrl(initialImageUrl));
+
+  const [error, setError] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  const update = (field) => (e) => {
+    setForm((prev) => ({
+      ...prev,
+      [field]: e.target.value,
+    }));
+  };
+
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+
+    if (!file) return;
+
+    const allowedTypes = [
+      'image/jpeg',
+      'image/jpg',
+      'image/png',
+      'image/webp',
+    ];
+
+    if (!allowedTypes.includes(file.type)) {
+      setError('Only JPG, PNG and WEBP images are allowed.');
+      return;
+    }
+
+    setError('');
+    setImageFile(file);
+    setPreview(URL.createObjectURL(file));
+  };
+
+  const submit = async (e) => {
+    e.preventDefault();
+    setError('');
+
+    if (
+      !form.make.trim() ||
+      !form.model.trim() ||
+      !form.category.trim() ||
+      form.price === '' ||
+      form.quantity === ''
+    ) {
+      setError('Make, model, category, price and quantity are required.');
+      return;
+    }
+
+    if (Number(form.price) <= 0) {
+      setError('Price must be greater than 0.');
+      return;
+    }
+
+    if (Number(form.quantity) < 0) {
+      setError('Quantity cannot be negative.');
+      return;
+    }
+
+    setSaving(true);
+
+    try {
+      const formData = new FormData();
+
+      formData.append('make', form.make.trim());
+      formData.append('model', form.model.trim());
+      formData.append('category', form.category.trim());
+      formData.append('price', Number(form.price));
+      formData.append('quantity', Number(form.quantity));
+
+      if (imageFile) {
+        formData.append('image', imageFile);
+      }
+
+      await onSubmit(formData);
+    } catch (err) {
+      setError(
+        err.response?.data?.message ||
+          'Something went wrong. Please try again.'
+      );
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-ink/60 flex items-center justify-center z-30 p-4">
+      <div className="bg-paper rounded-md shadow-xl w-full max-w-md p-6 border-t-4 border-amber max-h-[90vh] overflow-y-auto">
+        <h2 className="font-display text-2xl uppercase mb-4">
+          {initial ? 'Update Vehicle' : 'Add Vehicle to Lot'}
+        </h2>
+
+        {error && (
+          <div className="bg-rust/10 border border-rust/30 text-rust text-sm rounded-sm px-3 py-2 mb-4">
+            {error}
+          </div>
+        )}
+
+        <form onSubmit={submit} className="space-y-4">
+          <div className="rounded-sm">
+            <label className="block text-[10px] uppercase tracking-wider text-steel mb-2 font-mono">
+              Vehicle Photo
+            </label>
+
+            {preview ? (
+              <img
+                src={preview}
+                alt="Vehicle Preview"
+                className="w-full h-40 object-cover rounded-sm mb-3 border border-ink/10 shadow-sm"
+              />
+            ) : (
+              <div className="w-full h-40 rounded-sm border border-dashed border-ink/20 bg-ink/5 flex items-center justify-center text-sm text-steel mb-3">
+                No image selected
+              </div>
+            )}
+
+            <label className="flex items-center justify-between gap-3 rounded-sm border border-dashed border-ink/30 bg-paper px-3 py-2 text-sm text-steel cursor-pointer transition hover:border-amber hover:text-ink">
+              <span className="truncate">
+                {imageFile ? imageFile.name : 'Choose an image'}
+              </span>
+
+              <span className="text-[10px] uppercase tracking-widest font-mono text-ink/70 whitespace-nowrap">
+                Browse
+              </span>
+
+              <input
+                type="file"
+                accept="image/jpeg,image/jpg,image/png,image/webp"
+                onChange={handleImageChange}
+                className="sr-only"
+              />
+            </label>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <Field
+              label="Make"
+              value={form.make}
+              onChange={update('make')}
+            />
+
+            <Field
+              label="Model"
+              value={form.model}
+              onChange={update('model')}
+            />
+          </div>
+
+          <Field
+            label="Category"
+            value={form.category}
+            onChange={update('category')}
+          />
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <Field
+              label="Price (₹)"
+              type="number"
+              value={form.price}
+              onChange={update('price')}
+            />
+
+            <Field
+              label="Quantity"
+              type="number"
+              value={form.quantity}
+              onChange={update('quantity')}
+            />
+          </div>
+
+          <div className="flex flex-col sm:flex-row gap-2 pt-2">
+            <button
+              type="submit"
+              disabled={saving}
+              className="flex-1 bg-amber hover:bg-amber-dark text-ink font-semibold uppercase tracking-wide text-xs py-2.5 rounded-sm transition-colors disabled:opacity-60 cursor-pointer disabled:cursor-not-allowed"
+            >
+              {saving
+                ? 'Saving...'
+                : initial
+                ? 'Save Changes'
+                : 'Add Vehicle'}
+            </button>
+
+            <button
+              type="button"
+              onClick={onCancel}
+              disabled={saving}
+              className="flex-1 border border-ink/20 text-ink uppercase tracking-wide text-xs py-2.5 rounded-sm hover:border-ink transition-colors disabled:opacity-60 cursor-pointer disabled:cursor-not-allowed"
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function Field({ label, value, onChange, type = 'text' }) {
+  return (
+    <div>
+      <label className="block text-[10px] uppercase tracking-wider text-steel mb-1 font-mono">
+        {label}
+      </label>
+
+      <input
+        type={type}
+        value={value}
+        onChange={onChange}
+        required
+        min={type === 'number' ? 0 : undefined}
+        className="w-full border border-ink/15 rounded-sm px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber"
+      />
+    </div>
+  );
+}
